@@ -65,12 +65,15 @@ jobs:
 
       - name: Collect everything
         shell: pwsh
+        continue-on-error: true
         run: |
           New-Item -ItemType Directory -Force out | Out-Null
           Copy-Item build/bin/Release/*.dll out -ErrorAction SilentlyContinue
           Copy-Item build/bin/Release/*.exe out -ErrorAction SilentlyContinue
           Get-ChildItem out | Select-Object Name, Length | Format-Table
-          try { & build/bin/Release/llama-cli.exe --version } catch { Write-Host "version print failed" }
+          $v = & build/bin/Release/llama-cli.exe --version 2>&1 | Out-String
+          Write-Host $v
+          Write-Host "collect done"
 
       - name: Upload
         uses: actions/upload-artifact@v4
