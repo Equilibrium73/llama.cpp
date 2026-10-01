@@ -49,7 +49,7 @@ jobs:
             -DBUILD_SHARED_LIBS=ON ^
             -DGGML_NATIVE=OFF ^
             -DGGML_CUDA=ON ^
-            -DGGML_BACKEND_DL=ON ^
+            -DGGML_BACKEND_DL=OFF ^
             -DLLAMA_BUILD_SERVER=ON ^
             -DLLAMA_BUILD_TESTS=OFF ^
             -DLLAMA_BUILD_EXAMPLES=OFF ^
@@ -75,6 +75,6 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: k2h-win-cuda128-full
+          name: k2h-win-cuda128-nodl
           path: out/*
           retention-days: 7
