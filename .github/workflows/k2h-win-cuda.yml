@@ -63,18 +63,18 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           cmake --build build --config Release -j %NUMBER_OF_PROCESSORS%
 
-      - name: Collect and report
+      - name: Collect everything
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force out | Out-Null
-          $files = @('llama.dll','llama-common.dll','ggml.dll','ggml-base.dll','ggml-cpu.dll','ggml-cuda.dll','mtmd.dll','llama-server.exe','llama-cli.exe')
-          foreach ($f in $files) { if (Test-Path "build/bin/Release/$f") { Copy-Item "build/bin/Release/$f" out } }
+          Copy-Item build/bin/Release/*.dll out -ErrorAction SilentlyContinue
+          Copy-Item build/bin/Release/*.exe out -ErrorAction SilentlyContinue
           Get-ChildItem out | Select-Object Name, Length | Format-Table
           try { & build/bin/Release/llama-cli.exe --version } catch { Write-Host "version print failed" }
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: k2h-win-cuda128-x64
+          name: k2h-win-cuda128-full
           path: out/*
           retention-days: 7
