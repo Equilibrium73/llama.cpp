@@ -1,0 +1,58 @@
+name: k2h-win-cuda
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install CUDA Toolkit 12.8
+        uses: Jimver/cuda-toolkit@v0.2.36
+        with:
+          cuda: '12.8.0'
+          method: 'network'
+          sub-packages: '["nvcc","cudart","cuda_nvrtc","libcublas","libcublas_dev","cuda_cccl"]'
+
+      - name: Install Ninja
+        run: choco install ninja -y
+
+      - name: Configure
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          cmake -S . -B build -G "Ninja Multi-Config" ^
+            -DBUILD_SHARED_LIBS=ON ^
+            -DGGML_NATIVE=OFF ^
+            -DGGML_CUDA=ON ^
+            -DGGML_BACKEND_DL=ON ^
+            -DLLAMA_BUILD_SERVER=ON ^
+            -DLLAMA_BUILD_TESTS=OFF ^
+            -DLLAMA_BUILD_EXAMPLES=OFF ^
+            -DLLAMA_CURL=OFF ^
+            -DCMAKE_CUDA_ARCHITECTURES=120
+
+      - name: Build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          cmake --build build --config Release -j %NUMBER_OF_PROCESSORS%
+
+      - name: Collect and report
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          $files = @('llama.dll','llama-common.dll','ggml.dll','ggml-base.dll','ggml-cpu.dll','ggml-cuda.dll','mtmd.dll','llama-server.exe','llama-cli.exe')
+          foreach ($f in $files) { if (Test-Path "build/bin/Release/$f") { Copy-Item "build/bin/Release/$f" out } }
+          Get-ChildItem out | Select-Object Name, Length | Format-Table
+          try { & build/bin/Release/llama-cli.exe --version } catch { Write-Host "version print failed" }
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: k2h-win-cuda128-x64
+          path: out/*
+          retention-days: 7
