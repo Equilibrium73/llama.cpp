@@ -10,12 +10,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Install CUDA Toolkit 12.8
-        uses: Jimver/cuda-toolkit@v0.2.36
-        with:
-          cuda: '12.8.0'
-          method: 'network'
-          sub-packages: '["nvcc","cudart","cuda_nvrtc","libcublas","libcublas_dev","cuda_cccl"]'
+      - name: Install CUDA 12.8 from NVIDIA redist (no installer)
+        shell: pwsh
+        run: |
+          $base = 'https://developer.download.nvidia.com/compute/cuda/redist'
+          $dst  = 'C:\cuda128'
+          New-Item -ItemType Directory -Force -Path $dst | Out-Null
+          $pkgs = @(
+            'cuda_nvcc/windows-x86_64/cuda_nvcc-windows-x86_64-12.8.61-archive.zip',
+            'cuda_cudart/windows-x86_64/cuda_cudart-windows-x86_64-12.8.57-archive.zip',
+            'cuda_nvrtc/windows-x86_64/cuda_nvrtc-windows-x86_64-12.8.61-archive.zip',
+            'libcublas/windows-x86_64/libcublas-windows-x86_64-12.8.3.14-archive.zip',
+            'cuda_cccl/windows-x86_64/cuda_cccl-windows-x86_64-12.8.55-archive.zip'
+          )
+          foreach ($p in $pkgs) {
+            $zip = Join-Path $env:RUNNER_TEMP (Split-Path $p -Leaf)
+            curl.exe -sSL "$base/$p" -o $zip
+            $tmp = Join-Path $env:RUNNER_TEMP 'x'
+            Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+            Expand-Archive -Path $zip -DestinationPath $tmp -Force
+            $inner = Get-ChildItem $tmp -Directory | Select-Object -First 1
+            if ($inner) { Copy-Item -Path "$($inner.FullName)\*" -Destination $dst -Recurse -Force }
+            else { Copy-Item -Path "$tmp\*" -Destination $dst -Recurse -Force }
+          }
+          Get-ChildItem "$dst\bin\nvcc.exe" | Select-Object FullName
+          "CUDA_PATH=$dst"        | Out-File -FilePath $env:GITHUB_ENV -Append
+          "CUDAToolkit_ROOT=$dst" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "$dst\bin"              | Out-File -FilePath $env:GITHUB_PATH -Append
 
       - name: Install Ninja
         run: choco install ninja -y
@@ -33,6 +54,7 @@ jobs:
             -DLLAMA_BUILD_TESTS=OFF ^
             -DLLAMA_BUILD_EXAMPLES=OFF ^
             -DLLAMA_CURL=OFF ^
+            -DCUDAToolkit_ROOT=C:/cuda128 ^
             -DCMAKE_CUDA_ARCHITECTURES=120
 
       - name: Build
