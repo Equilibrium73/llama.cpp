@@ -1,3 +1,13 @@
+> **Note - why this fork exists:** This is a temporary **build fork** of
+> [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp). It exists only to compile a
+> Windows / CUDA llama.cpp that understands the **K2-Horizon** architecture (code taken from the
+> IFM fork branch) and to package the result as an additional runtime for **LM Studio**, so that
+> K2-Horizon GGUFs load in LM Studio without touching the shipped runtime or the NVIDIA driver.
+> No development happens here - the real project is upstream. The build runs from
+> `.github/workflows/k2h-win-cuda.yml` (manual `workflow_dispatch`), everything else is stock upstream.
+
+---
+
 # llama.cpp
 
 ![llama](https://raw.githubusercontent.com/ggml-org/llama.brand/refs/heads/master/cover/llama-cpp/cover-llama-cpp-dark.svg)
